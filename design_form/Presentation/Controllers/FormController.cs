@@ -10,6 +10,7 @@ using design_form.Presentation.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using Serilog.Core;
 
 namespace design_form.Presentation.Controllers
 {
@@ -22,16 +23,16 @@ namespace design_form.Presentation.Controllers
             _formService = formService ?? throw new ArgumentNullException(nameof(formService));
         }
 
-        [Route("addform")]
-        [HttpPost]
-        public async Task<IActionResult> AddForm([FromBody] FormModel model)
-        {
-            var logger = new LoggerConfiguration()
+        private Logger logger = new LoggerConfiguration()
             .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
             .WriteTo.Console()
             .Enrich.FromLogContext()
             .CreateLogger();
 
+        [Route("addform")]
+        [HttpPost]
+        public async Task<IActionResult> AddForm([FromBody] FormModel model)
+        {
             try
             {
                 await _formService.AddForm(model.ToEntity());
@@ -47,12 +48,6 @@ namespace design_form.Presentation.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateStat([FromBody] FormModel model)
         {
-            var logger = new LoggerConfiguration()
-            .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
-            .WriteTo.Console()
-            .Enrich.FromLogContext()
-            .CreateLogger();
-
             try
             {
                 await _formService.UpdateStat(model.ToEntity());
@@ -64,21 +59,11 @@ namespace design_form.Presentation.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Невозможно обновить статус");
             }
         }
-        
+
         [Route("getform")]
         [HttpPost]
         public async Task<IActionResult> GetForm([FromBody] FormModel model)
         {
-            using (StreamReader reader = new StreamReader(Request.Body, Encoding.UTF8)) 
-            { 
-                string c = await reader.ReadToEndAsync(); 
-            }
-
-            var logger = new LoggerConfiguration()
-            .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
-            .WriteTo.Console()
-            .Enrich.FromLogContext()
-            .CreateLogger();
             try
             {
                 logger.Information("Запрос на получение заявок");

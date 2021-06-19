@@ -65,7 +65,7 @@ namespace design_web_app.Presentation.Controllers
         }
 
         [Route("reset")]
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> ResetPassword([FromBody] AuthModel model)
         {
             var logger = new LoggerConfiguration()

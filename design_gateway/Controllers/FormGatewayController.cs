@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Sentry;
 using Serilog;
+using Serilog.Core;
 
 namespace Gateway.Controllers
 {
@@ -22,34 +24,32 @@ namespace Gateway.Controllers
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
+
+        private HttpClient client = new HttpClient();
+        private Logger logger = new LoggerConfiguration()
+                .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
+                .Enrich.FromLogContext()
+                .CreateLogger();
+
+        private async Task<string> MakeRequest(string url, object model)
+        {
+            var content = model.ToString();
+            var body = new StringContent(content, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync(url, body);
+            return await response.Content.ReadAsStringAsync();
+        }
+
+
         [HttpPost]
         [Route("api/v1/addForm")]
 
         public async Task<IActionResult> AddForm([FromBody] object model)
         {
-            var logger = new LoggerConfiguration()
-                .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
-                .Enrich.FromLogContext()
-                .CreateLogger();
+            logger.Information("Создание заявки");
 
-            try
-            {
-                logger.Error("Создание заявки");
-                using (HttpClient client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("sentry-header", "123");
-                    var url = _configuration.GetSection("design_form").Value;
-                    var resultMessage = await client.PostAsJsonAsync($"{url}addform", model);
-                    resultMessage.EnsureSuccessStatusCode();
-                    var result = await resultMessage.Content.ReadAsStringAsync();
-                    return Ok(result);
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Произошла фатальная ошибка");
-                return StatusCode(StatusCodes.Status500InternalServerError, e);
-            }
+            var url = _configuration.GetSection("design_form").Value;
+            var response = await MakeRequest($"{url}addform", model);
+            return Ok(response);
         }
 
         [HttpPost]
@@ -57,31 +57,12 @@ namespace Gateway.Controllers
 
         public async Task<IActionResult> UpdateStat([FromBody] object model)
         {
-            var logger = new LoggerConfiguration()
-                .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
-                .Enrich.FromLogContext()
-                .CreateLogger();
+            logger.Information("Обновление статуса");
 
-            try
-            {
+            var url = _configuration.GetSection("design_form").Value;
+            var response = await MakeRequest($"{url}updatestat", model);
+            return Ok(response);
 
-                logger.Error("Обновление статуса");
-
-                using (HttpClient client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("sentry-header", "123");
-                    var url = _configuration.GetSection("design_form").Value;
-                    var resultMessage = await client.PostAsJsonAsync($"{url}updatestat", model);
-                    resultMessage.EnsureSuccessStatusCode();
-                    var result = await resultMessage.Content.ReadAsStringAsync();
-                    return Ok(result);
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Произошла фатальная ошибка");
-                return StatusCode(StatusCodes.Status500InternalServerError, e);
-            }
         }
 
         [HttpPost]
@@ -89,37 +70,12 @@ namespace Gateway.Controllers
 
         public async Task<IActionResult> GetForm([FromBody] object model)
         {
-            var logger = new LoggerConfiguration()
-                .WriteTo.Sentry("https://352b21018b4a424cad3e10f0377fae71@o852348.ingest.sentry.io/5818792")
-                .Enrich.FromLogContext()
-                .CreateLogger();
+            logger.Information("Вывод заявок пользователя");
 
-            try
-            {
+            var url = _configuration.GetSection("design_form").Value;
+            var response = await MakeRequest($"{url}getform", model);
+            return Ok(response);
 
-                logger.Error("Вывод заявок пользователя");
-
-                using (HttpClient client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("sentry-header", "123");
-                    var url = _configuration.GetSection("design_form").Value;
-                    var content = JsonConvert.SerializeObject(model);//Serealiza la lista
-                   
-                    HttpClient hc = new HttpClient();
-                    hc.DefaultRequestHeaders.Add("content-type", "application/json");
-                    var response = await hc.PostAsync($"{url}getform", new StringContent(content));
-
-                    // var resultMessage = await client.PostAsJsonAsync($"{url}getform", model);
-                    // resultMessage.EnsureSuccessStatusCode();
-                    // var result = await resultMessage.Content.ReadAsStringAsync();
-                    return Ok(response);
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Произошла фатальная ошибка");
-                return StatusCode(StatusCodes.Status500InternalServerError, e);
-            }
         }
     }
 }
