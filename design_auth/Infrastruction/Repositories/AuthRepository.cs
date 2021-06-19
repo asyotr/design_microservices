@@ -11,15 +11,23 @@ namespace design_web_app.Infrastruction.Repositories
 {
     public class AuthRepository : IAuthRepository
     {
+        private const string ConnectionString = "Server = MSI; Database = Auth; Integrated Security = true";
         public async Task AddAuth(Auth auth)
         {
             if (auth == null)
                 throw new ArgumentNullException(nameof(auth));
-            using (var connection = new SqlConnection("Server = MSI; Database = Auth; Integrated Security = true"))
+            using (var connection = new SqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
-                using (var cmd = new SqlCommand(cmdText: $"INSERT INTO dbo.Auth (Login, Password, Name, Surname, Email, Date) VALUES ('{auth.Login}', '{auth.Password}', '{auth.Name}', '{auth.Surname}', '{auth.Email}', GETDATE())", connection))
+                var query = $"INSERT INTO dbo.Auth (Login, Password, Name, Surname, Email, Date) VALUES (@login, @password, @name, @surname, @email, GETDATE())";
+               
+                using (var cmd = new SqlCommand(query, connection))
                 {
+                    cmd.Parameters.AddWithValue("login", auth.Login);
+                    cmd.Parameters.AddWithValue("password", auth.Password);
+                    cmd.Parameters.AddWithValue("name", auth.Name);
+                    cmd.Parameters.AddWithValue("surname", auth.Surname);
+                    cmd.Parameters.AddWithValue("email", auth.Email);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -27,16 +35,22 @@ namespace design_web_app.Infrastruction.Repositories
 
         public async Task GetAuth(Auth auth)
         {
-            using (var connection = new SqlConnection("Server = MSI; Database = Auth; Integrated Security = true"))
+            using (var connection = new SqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
-                using (var cmd = new SqlCommand(cmdText: $"SELECT COUNT(*) AS count FROM dbo.Auth WHERE Login = '{auth.Login}' AND Password = '{auth.Password}'", connection))
+                var query = $"SELECT COUNT(*) AS count FROM dbo.Auth WHERE Login = @login AND Password = @password";
+
+                using (var cmd = new SqlCommand(query, connection))
                 {
+                    cmd.Parameters.AddWithValue("login", auth.Login);
+                    cmd.Parameters.AddWithValue("password", auth.Password);
+
                     var reader = await cmd.ExecuteReaderAsync();
                     reader.Read();
                     int count = int.Parse(reader["count"].ToString());
                     if (count != 1)
                         throw new ArgumentNullException(nameof(auth));
+
                 }
             }
         }
@@ -49,11 +63,15 @@ namespace design_web_app.Infrastruction.Repositories
             string password = new string(Enumerable.Repeat(chars, 10)
             .Select(s => s[random.Next(s.Length)]).ToArray());
 
-            using (var connection = new SqlConnection("Server = MSI; Database = Auth; Integrated Security = true"))
+            using (var connection = new SqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
-                using (var cmd = new SqlCommand(cmdText: $"UPDATE dbo.Auth SET Password = '{password}' WHERE Login = '{auth.Login}'", connection))
+                var query = $"UPDATE dbo.Auth SET Password = @password WHERE Login = @login";
+
+                using (var cmd = new SqlCommand(query, connection))
                 {
+                    cmd.Parameters.AddWithValue("login", auth.Login);
+                    cmd.Parameters.AddWithValue("password", password);
                     cmd.ExecuteNonQuery();
                 }
             }
